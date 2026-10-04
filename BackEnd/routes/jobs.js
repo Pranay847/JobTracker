@@ -92,7 +92,7 @@ router.put('/:id', verifyToken, (req, res) => {
   }
 
   // Check if job exists and belongs to user
-  db.get('SELECT id FROM jobs WHERE id = ? AND userId = ?', [id, userId], (err, job) => {
+  db.get('SELECT id, applicationDate FROM jobs WHERE id = ? AND userId = ?', [id, userId], (err, job) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
@@ -101,11 +101,13 @@ router.put('/:id', verifyToken, (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
+    // Keep the stored date when the client omits it, instead of overwriting with NULL
+    const appDate = applicationDate || job.applicationDate;
     const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 
     db.run(
       'UPDATE jobs SET company = ?, title = ?, status = ?, applicationDate = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
-      [company.trim(), title.trim(), formattedStatus, applicationDate, notes ? notes.trim() : '', id],
+      [company.trim(), title.trim(), formattedStatus, appDate, notes ? notes.trim() : '', id],
       (err) => {
         if (err) {
           return res.status(500).json({ error: 'Database error' });
